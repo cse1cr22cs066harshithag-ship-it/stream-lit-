@@ -1,0 +1,16 @@
+create database CloudHealth;
+use CloudHealth;
+
+create table user_signup(username varchar(50) primary key,
+password varchar(50),
+phone_no varchar(50),
+email varchar(50),
+address varchar(50),
+description varchar(200),
+usertype varchar(40));
+
+create table patientdata(username varchar(50),
+patient_data varchar(800),
+predict varchar(30),
+predict_date varchar(30));
+

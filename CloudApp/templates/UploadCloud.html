@@ -1,0 +1,173 @@
+{% load static %}
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<title>Homomorphic Encryption</title>
+<meta name="keywords" content="" />
+<meta name="Premium Series" content="" />
+<link href="{% static 'default.css' %}" rel="stylesheet" type="text/css" media="screen" />
+<script language="javascript">
+	function validate(formObj)
+	{
+	if(formObj.t3.value.length==0)
+	{
+	alert("Please Enter CP Value");
+	formObj.t3.focus();
+	return false;
+	}
+	if(formObj.t4.value.length==0)
+	{
+	alert("Please enter Blood Pressure Value");
+	formObj.t4.focus();
+	return false;
+	}
+	if(formObj.t5.value.length==0)
+	{
+	alert("Please enter Cholesterol level");
+	formObj.t5.focus();
+	return false;
+	}
+	if(formObj.t6.value.length==0)
+	{
+	alert("Please enter FBS Value");
+	formObj.t6.focus();
+	return false;
+	}
+	
+	if(formObj.t7.value.length==0)
+	{
+	alert("Please enter Rest ECG value");
+	formObj.t7.focus();
+	return false;
+	}
+	if(formObj.t8.value.length==0)
+	{
+	alert("Please enter Thalach value");
+	formObj.t8.focus();
+	return false;
+	}
+
+	if(formObj.t9.value.length==0)
+	{
+	alert("Please enter Exang value");
+	formObj.t9.focus();
+	return false;
+	}
+
+	if(formObj.t10.value.length==0)
+	{
+	alert("Please enter Old Speak value");
+	formObj.t10.focus();
+	return false;
+	}
+
+	if(formObj.t11.value.length==0)
+	{
+	alert("Please enter Slope value");
+	formObj.t11.focus();
+	return false;
+	}
+
+	if(formObj.t12.value.length==0)
+	{
+	alert("Please enter CA value");
+	formObj.t12.focus();
+	return false;
+	}
+
+	if(formObj.t13.value.length==0)
+	{
+	alert("Please enter Thal value");
+	formObj.t13.focus();
+	return false;
+	}
+	return true;
+	}
+	</script>
+</head>
+<body>
+<!-- start header -->
+<div id="header">
+	<div id="logo">
+		<h1><span><center>A Systematic Review of Homomorphic Encryption and its Contributions in Healthcare Industry
+
+</center></span></h1>
+		
+	</div>
+	<div id="menu">
+		<ul id="main">
+			<li><a href="{% url 'UploadCloud' %}"><font size="2" color="white">Upload Encrypted Symptoms to Cloud</a></li><td></td>
+			<li><a href="{% url 'ViewPrediction' %}"><font size="2" color="white">View Predictions</a></li><td></td>
+			<li><a href="{% url 'index' %}"><font size="2" color="white">Logout</a></li><td></td>
+			<td></td>
+			
+     
+		</ul>
+		
+	</div>
+	
+</div>
+
+<div id="wrapper">
+	<!-- start page -->
+	<div id="page">
+		 <form name ="frm" method="post" action="UploadCloudAction" onsubmit="return validate(this);">
+		<!-- start content -->
+		<div id="content">
+		<div class="flower"><center><img src="{% static 'images/tra.jpg' %}" alt="" width="660" height="100" /></center></div>
+			<br/><br/>
+			<div class="flower"><center><h1>
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+			Patient Symptoms Screen<h1></div>
+			<br/>
+			
+			
+	{% csrf_token %}
+		
+			<center><font size="3" color="red">{{ data|safe }}</font></center>
+		
+			<table align="right">
+
+			{{ data1|safe }}
+<tr><td><font size="3" color="black">Gender</td><td><select name="t2">
+<option value="0">Female</option>
+<option value="1">Male</option>
+</select>
+</td></tr>
+<tr><td><font size="3" color="black">CP</td><td><input type="text" name="t3" size="15"/> 
+<tr><td><font size="3" color="black">Blood&nbsp;Pressure</td><td><input type="text" name="t4" size="15"/> 
+<tr><td><font size="3" color="black">Cholesterol&nbsp;Level</td><td><input type="text" name="t5" size="15"/> 
+<tr><td><font size="3" color="black">FBS</td><td><input type="text" name="t6" size="15"/> 
+<tr><td><font size="3" color="black">Rest&nbsp;ECG</td><td><input type="text" name="t7" size="15"/> 
+
+<tr><td><font size="3" color="black">Thalach</td><td><input type="text" name="t8" size="15"/> 
+<tr><td><font size="3" color="black">Exang</td><td><input type="text" name="t9" size="15"/> 
+<tr><td><font size="3" color="black">Old&nbsp;Peak</td><td><input type="text" name="t10" size="15"/> 
+<tr><td><font size="3" color="black">Slope</td><td><input type="text" name="t11" size="15"/> 
+<tr><td><font size="3" color="black">CA</td><td><input type="text" name="t12" size="15"/> 
+<tr><td><font size="3" color="black">Thal</td><td><input type="text" name="t13" size="15"/> 
+
+</td></tr>
+<tr><td></td><td><input type="submit" value="Submit"></td>
+</td></tr></table>
+</form>
+			</table>
+			</center><br /><div class="post">
+				
+				<div class="entry">
+					
+				</div>
+			</div>
+		</div>
+		<!-- end content -->
+		<!-- start sidebars -->
+		
+		<!-- end sidebars -->
+		<div style="clear: both;">&nbsp;</div>
+	</div>
+	<!-- end page -->
+</div>
+</body>
+</html>
+
+
