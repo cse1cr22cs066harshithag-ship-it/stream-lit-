@@ -1,3 +1,2 @@
-import pymysql
-print(pymysql.__file__)
-pymysql.install_as_MySQLdb()
+# Intentionally left blank for package initialization.
+# Removed PyMySQL shim to use PostgreSQL (psycopg2) in production.

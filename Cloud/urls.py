@@ -20,3 +20,21 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('CloudApp.urls')),
 ]
+
+# from django.contrib import admin
+# from django.urls import path, include
+# from django.shortcuts import redirect # <-- CORRECTED IMPORT SOURCE
+
+# urlpatterns = [
+#     # 1. ADMIN PATH
+#     path('admin/', admin.site.urls),
+    
+#     # 2. ROOT PATH REDIRECT (FIXES 404 ERROR)
+#     # This maps the base URL (e.g., 127.0.0.1:8000/) to the named URL 'index', 
+#     # which is defined in the CloudApp/urls.py file.
+#     path('', redirect('index')), 
+    
+#     # 3. INCLUDE APPLICATION PATHS
+#     # This line sends all other requests (like /DoctorLogin.html) to the CloudApp's URL file.
+#     path('', include('CloudApp.urls')),
+# ]

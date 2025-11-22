@@ -1,4 +1,30 @@
-create database CloudHealth;
+-- Postgres DDL for CloudHealthCare
+-- Run these statements in your Postgres instance (psql or Render managed DB)
+
+-- user_signup table
+CREATE TABLE IF NOT EXISTS user_signup (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(128) NOT NULL,
+    phone_no VARCHAR(20),
+    email VARCHAR(254),
+    address TEXT,
+    description TEXT,
+    usertype VARCHAR(40)
+);
+
+-- patientdata table
+CREATE TABLE IF NOT EXISTS patientdata (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES user_signup(id) ON DELETE CASCADE,
+    patient_data TEXT NOT NULL,
+    predict VARCHAR(30),
+    predict_date DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Optional indexes
+CREATE INDEX IF NOT EXISTS idx_patientdata_user_id ON patientdata(user_id);create database CloudHealth;
 use CloudHealth;
 
 create table user_signup(username varchar(50) primary key,

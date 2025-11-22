@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/2.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.1/ref/settings/
 """
-
+import dj_database_url
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -20,13 +20,19 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 't&)#ovyz@brw=r^ccs=p9&qf0k2e)u*%6%i%wd&8v!#kp-ke7%'
+# Use environment variable for SECRET_KEY in production; fallback for local dev
+SECRET_KEY = os.environ.get('SECRET_KEY', 't&)#ovyz@brw=r^ccs=p9&qf0k2e)u*%6%i%wd&8v!#kp-ke7%')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Configure Debug and Allowed Hosts from environment
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
-
+# ALLOWED_HOSTS should be provided as a comma-separated string in env.
+env_allowed = os.environ.get('ALLOWED_HOSTS')
+if env_allowed:
+    ALLOWED_HOSTS = [h.strip() for h in env_allowed.split(',') if h.strip()]
+else:
+    ALLOWED_HOSTS = ['.onrender.com', '127.0.0.1']
 
 # Application definition
 
@@ -42,6 +48,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -74,18 +81,14 @@ WSGI_APPLICATION = 'Cloud.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
+# Use dj-database-url to configure the database from DATABASE_URL environment variable.
+# Example DATABASE_URL: postgres://user:password@host:port/dbname
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'CloudHealth',
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
-        'USER': 'root',
-        'PASSWORD': '',
-	'OPTIONS': {
-          'autocommit': True,
-        },     
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL', 'postgres://postgres:postgres@127.0.0.1:5432/CloudHealth'),
+        conn_max_age=600,
+        ssl_require=not (os.environ.get('DISABLE_DB_SSL', '') == 'True')
+    )
 }
 
 
@@ -126,3 +129,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Use WhiteNoise to serve static files in production
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Optionally additional static dirs if you keep an app-level static
+# STATICFILES_DIRS = [os.path.join(BASE_DIR, 'CloudApp', 'static')]
