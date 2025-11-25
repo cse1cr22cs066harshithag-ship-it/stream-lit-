@@ -1,13 +1,4 @@
-# from django.db import models
-
-# # Create your models here.
-
-
 from django.db import models
-
-# Note: this app uses simple custom models. In production it's recommended
-# to use Django's built-in `auth.User` for authentication and password handling.
-
 
 class UserSignup(models.Model):
     """Signup information for a user.
@@ -17,7 +8,6 @@ class UserSignup(models.Model):
     - `password` should be handled via Django auth in a real app; kept here
       for compatibility with the existing project structure.
     """
-
     username = models.CharField(max_length=50, unique=True)
     password = models.CharField(max_length=128)
     phone_no = models.CharField(max_length=20, blank=True)
@@ -39,7 +29,6 @@ class PatientData(models.Model):
     Uses a foreign key to `UserSignup` so relational integrity is enforced
     when using a Postgres backend.
     """
-
     user = models.ForeignKey(UserSignup, on_delete=models.CASCADE, related_name='patient_records')
     patient_data = models.TextField()
     predict = models.CharField(max_length=30, blank=True)
