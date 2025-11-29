@@ -1,0 +1,15 @@
+venv/
+.venv/
+venv\
+__pycache__/
+*.pyc
+*.sqlite3
+cloudhealthcare.db
+db.sqlite3
+*.log
+.env
+/.venv
+/.vscode
+dist/
+build/
+*.egg-info/
