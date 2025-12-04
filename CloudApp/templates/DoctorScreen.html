@@ -28,6 +28,13 @@
 	</div>
 	
 </div>
+	{% if messages %}
+	<div style="margin:8px; text-align:center;">
+		{% for message in messages %}
+			<div class="message {{ message.tags }}">{{ message }}</div>
+		{% endfor %}
+	</div>
+	{% endif %}
 <div id="wrapper">
 	<!-- start page -->
 	<div id="page">

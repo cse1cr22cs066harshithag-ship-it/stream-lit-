@@ -3,6 +3,7 @@
 This repository contains a Django app (`CloudApp`) and models adapted to use a Postgres database. The files added explain how to create the database, install dependencies, and deploy to Render.
 
 Quick tasks performed
+
 - Updated `CloudApp/models.py` to use a proper `ForeignKey` and Postgres-friendly fields.
 - Added `db.txt` with Postgres DDL to create the required tables.
 - Added `requirements.txt` and `Procfile` for Render deployment.
@@ -35,20 +36,22 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-Deploying to Render (high-level)
+Deploying to Streamlit Cloud (recommended)
 
-1. Push this repo to GitHub.
-2. In Render, create a new Web Service and connect to the GitHub repo.
-3. Set build command: `pip install -r requirements.txt`
-4. Set start command (Procfile is picked up automatically) or set env var `WSGI_MODULE` to your project's WSGI module, e.g. `myproject.wsgi`.
-5. Create a managed Postgres database in Render (Database → New Database). After it's created, copy the `DATABASE_URL` connection string from Render and add it to the Web Service's environment variables.
-6. Set `PORT` environment variable if needed and any secret keys (`DJANGO_SECRET_KEY`, etc.).
-7. Deploy; Render will build and start the service.
+1. Commit these Streamlit files to GitHub: `app.py`, `streamlit_db.py`, `requirements_streamlit.txt`.
+2. Push the repo to GitHub (branch `main`).
+3. Go to https://streamlit.io/cloud and sign in with your GitHub account.
+4. Click "New app", select this repository and branch `main`, set the main file to `app.py`, then click "Deploy".
+5. Streamlit Cloud will install packages from `requirements_streamlit.txt` and launch the app. The public URL will be provided by Streamlit Cloud.
 
 Notes & next steps
-- I couldn't find `settings.py` or `manage.py` in the workspace; if your Django project uses a different layout, update `WSGI_MODULE` and `manage.py` path accordingly.
-- I recommend switching to Django's built-in `auth.User` for password handling and using `django-environ` or `dj-database-url` in `settings.py` to read `DATABASE_URL`.
-- If you want, I can:
-  - update `settings.py` to use `dj-database-url` and environment variables,
-  - add a `render.yaml` for full Render infra-as-code,
-  - or prepare a Dockerfile for containerized deployment.
+
+- The Streamlit app uses an embedded SQLite DB: `cloudhealthcare.db` in the repo root. This file is ignored by `.gitignore` so it won't be pushed to GitHub; Streamlit Cloud stores app data separately.
+- If you want persistence across deployments, configure an external Postgres DB and update `streamlit_db.py` to use `DATABASE_URL`.
+- If you prefer to keep the Django version, I left the Django files in the repo; but Streamlit is simpler to deploy and maintain on Streamlit Cloud.
+
+If you'd like, I can:
+
+- create a Git commit in this workspace with the Streamlit files staged (you'll still need to push), or
+- update `streamlit_db.py` to support `DATABASE_URL` for external DBs, or
+- add a small `start_streamlit.ps1` script to make local testing one-line.

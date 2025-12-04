@@ -45,7 +45,17 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'CloudApp',
     'whitenoise.runserver_nostatic',  # For development with whitenoise
+    # 'django_extensions' is optional; append below if available.
 ]
+
+# Optionally include django-extensions when it's installed in the environment.
+try:
+    import django_extensions  # type: ignore
+except Exception:
+    # Not installed — don't break startup. Install with pip if you need it.
+    pass
+else:
+    INSTALLED_APPS.append('django_extensions')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -178,3 +188,8 @@ if not DEBUG:
 
 # Django 3.2+: specify default primary key field type for new models
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# In settings.py, add these settings at the bottom
+SECURE_SSL_REDIRECT = False  # Disable SSL redirect for development
+SESSION_COOKIE_SECURE = False  # Allow non-HTTPS cookies
+CSRF_COOKIE_SECURE = False  # Allow non-HTTPS CSRF cookies

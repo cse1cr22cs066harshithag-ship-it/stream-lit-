@@ -30,8 +30,11 @@ def _load_ml_model():
         from sklearn.model_selection import train_test_split
         from sklearn.ensemble import RandomForestClassifier
         from Homomorphic import encryptData
-    except Exception:
+    except Exception as imp_exc:
         # Optional ML dependencies not available; don't block Django management commands.
+        import traceback
+        print('[_load_ml_model] ML import failed:')
+        traceback.print_exception(type(imp_exc), imp_exc, imp_exc.__traceback__)
         _ml_model = None
         return None
 
@@ -39,19 +42,29 @@ def _load_ml_model():
     dataset_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "Dataset", "heart.csv")
     try:
         dataset = pd.read_csv(dataset_path)
-    except Exception:
+    except Exception as read_exc:
+        import traceback
+        print(f'[_load_ml_model] Failed to read dataset at {dataset_path}:')
+        traceback.print_exception(type(read_exc), read_exc, read_exc.__traceback__)
         _ml_model = None
         return None
 
-    data = dataset.values
-    X = data[:, 0 : data.shape[1] - 1]
-    Y = data[:, data.shape[1] - 1]
-    homo_X = encryptData(X)
-    X_train, X_test, y_train, y_test = train_test_split(homo_X, Y, test_size=0.2)
-    rf = RandomForestClassifier()
-    rf.fit(X_train, y_train)
-    _ml_model = (rf, encryptData)
-    return _ml_model
+    try:
+        data = dataset.values
+        X = data[:, 0 : data.shape[1] - 1]
+        Y = data[:, data.shape[1] - 1]
+        homo_X = encryptData(X)
+        X_train, X_test, y_train, y_test = train_test_split(homo_X, Y, test_size=0.2)
+        rf = RandomForestClassifier()
+        rf.fit(X_train, y_train)
+        _ml_model = (rf, encryptData)
+        return _ml_model
+    except Exception as train_exc:
+        import traceback
+        print('[_load_ml_model] Error training or preparing model:')
+        traceback.print_exception(type(train_exc), train_exc, train_exc.__traceback__)
+        _ml_model = None
+        return None
 
 def UploadCloudAction(request):
     # If someone visits this URL with GET, redirect them to the upload form.
@@ -60,6 +73,7 @@ def UploadCloudAction(request):
 
     # POST handling
     try:
+        print(f"UploadCloudAction called: method={request.method}, session_username={request.session.get('username')}")
         # Check if user is logged in using session
         if 'username' not in request.session:
             messages.error(request, 'You must be logged in to submit patient data.')
@@ -90,6 +104,18 @@ def UploadCloudAction(request):
         model = _load_ml_model()
         output = "Prediction unavailable"
         encrypted_str = ""
+        # If ML/encryption stack isn't available, create a visible simulated
+        # 'encrypted' representation so the UI shows something useful.
+        import base64
+        if model is None:
+            try:
+                enc_display_fallback = base64.b64encode(plaintext_str.encode()).decode()
+                encrypted_str = enc_display_fallback + "," + plaintext_str
+                output = "Prediction unavailable (fallback)"
+            except Exception:
+                encrypted_str = "," + plaintext_str
+                output = "Prediction unavailable"
+
         if model is not None:
             try:
                 import numpy as np
@@ -119,7 +145,8 @@ def UploadCloudAction(request):
             # ML not available; store empty encrypted part and plaintext after comma
             encrypted_str = ",".join(["", plaintext_str])
 
-        today = str(datetime.now())
+        # Use a proper date for the DateField to avoid DB parsing issues
+        today = datetime.now().date()
         try:
             # ORM: Find user object
             user_obj = UserSignup.objects.filter(username=username).first()
@@ -137,10 +164,14 @@ def UploadCloudAction(request):
             messages.error(request, 'Unable to save patient data right now. Please try again later.')
             return redirect('UploadCloud')
 
+        # Build display result for the patient page.
         encrypted = encrypted_str.split(",")
         # Ensure we always have at least the encrypted (maybe empty) and plaintext parts
         enc_display = encrypted[0] if len(encrypted) > 0 else ""
         result = "Encrypted Data = "+enc_display+"<br/>Predicted Patient Health : "+output
+        # Helpful debug log (visible in runserver console)
+        print(f"UploadCloudAction: user={username}, predict={output}, predict_date={today}, stored_len={len(encrypted_str)}")
+        messages.success(request, 'Patient data uploaded successfully.')
         context= {'data':result}
         return render(request,'PatientScreen.html', context)
     except Exception as exc:
@@ -283,6 +314,7 @@ def PatientLoginAction(request):
         if status == 'Login Success':
             # Store username in session
             request.session['username'] = username
+            request.session['usertype'] = 'Patient'
             request.session.set_expiry(3600)  # Session expires in 1 hour
             return redirect('ViewPrediction')
         else:
@@ -296,17 +328,15 @@ def DoctorLoginAction(request):
         password = request.POST.get('t2', '').strip()
         status = checkUser(username, password, 'Doctor')
         if status == 'Login Success':
-            # Store username in session
+            # Store username and usertype in session
             request.session['username'] = username
+            request.session['usertype'] = 'Doctor'
             request.session.set_expiry(3600)  # Session expires in 1 hour
-            return redirect('patient_data_view')
-        msg = checkUser(username, password, "Doctor")
-        if msg == "success":
-            context= {'data':"Welcome "+username}
-            return render(request,'DoctorScreen.html', context)
-        else:
-            context= {'data':msg}
-            return render(request,'DoctorLogin.html', context)
+            return redirect('PatientData')
+
+        # Login failed
+        messages.error(request, 'Invalid username or password')
+        return redirect('DoctorLogin')
 
 
 

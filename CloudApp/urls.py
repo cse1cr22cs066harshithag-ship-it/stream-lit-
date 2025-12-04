@@ -37,7 +37,7 @@ urlpatterns = [
     path('UploadCloud', views.UploadCloud, name="UploadCloud"),
     path('UploadCloudAction', views.UploadCloudAction, name="UploadCloudAction"),
     path('ViewPrediction', views.ViewPrediction, name="ViewPrediction"),
-    path('PatientData', views.PatientData, name="PatientData"), 
+    path('PatientData', views.patient_data_view, name="PatientData"), 
     path('PatientLoginAction', views.PatientLoginAction, name="PatientLoginAction"), 
     path('DoctorLoginAction', views.DoctorLoginAction, name="DoctorLoginAction"), 
 ]

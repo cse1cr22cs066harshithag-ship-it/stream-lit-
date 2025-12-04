@@ -184,3 +184,278 @@ def get_user_by_id(user_id: int) -> Optional[Dict]:
     except Exception as e:
         print(f"Error fetching user: {e}")
         return None
+
+
+# ==================== Advanced Features ====================
+
+def create_trend_analysis_tables():
+    """Create tables for trend analysis and risk scores."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Risk scores table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS risk_scores (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            score REAL,
+            risk_level TEXT,
+            calculation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES user_signup(id) ON DELETE CASCADE
+        )
+    """)
+    
+    # Access control table (for collaborative diagnosis)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS access_control (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_user_id INTEGER NOT NULL,
+            authorized_doctor_id INTEGER NOT NULL,
+            access_granted_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (patient_user_id) REFERENCES user_signup(id) ON DELETE CASCADE,
+            FOREIGN KEY (authorized_doctor_id) REFERENCES user_signup(id) ON DELETE CASCADE
+        )
+    """)
+    
+    conn.commit()
+    conn.close()
+
+
+def save_risk_score(user_id: int, score: float, risk_level: str) -> bool:
+    """Save calculated risk score for a patient."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO risk_scores (user_id, score, risk_level)
+            VALUES (?, ?, ?)
+        """, (user_id, score, risk_level))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error saving risk score: {e}")
+        return False
+
+
+def get_risk_scores(user_id: int) -> List[Dict]:
+    """Get risk score history for a patient."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, score, risk_level, calculation_date FROM risk_scores
+            WHERE user_id = ?
+            ORDER BY calculation_date DESC
+            LIMIT 30
+        """, (user_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return [dict(row) for row in rows]
+    except Exception as e:
+        print(f"Error fetching risk scores: {e}")
+        return []
+
+
+def grant_access(patient_id: int, doctor_id: int) -> Tuple[bool, str]:
+    """Grant doctor access to patient's encrypted data."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        # Check if access already exists
+        cursor.execute("""
+            SELECT id FROM access_control 
+            WHERE patient_user_id = ? AND authorized_doctor_id = ?
+        """, (patient_id, doctor_id))
+        
+        if cursor.fetchone():
+            conn.close()
+            return False, "Access already granted to this doctor"
+        
+        cursor.execute("""
+            INSERT INTO access_control (patient_user_id, authorized_doctor_id)
+            VALUES (?, ?)
+        """, (patient_id, doctor_id))
+        
+        conn.commit()
+        conn.close()
+        return True, "Access granted successfully"
+    except Exception as e:
+        return False, f"Error granting access: {str(e)}"
+
+
+def revoke_access(patient_id: int, doctor_id: int) -> bool:
+    """Revoke doctor's access to patient's encrypted data."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            DELETE FROM access_control 
+            WHERE patient_user_id = ? AND authorized_doctor_id = ?
+        """, (patient_id, doctor_id))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error revoking access: {e}")
+        return False
+
+
+def get_authorized_patients(doctor_id: int) -> List[Dict]:
+    """Get all patients a doctor has access to."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT u.id, u.username 
+            FROM access_control ac
+            JOIN user_signup u ON ac.patient_user_id = u.id
+            WHERE ac.authorized_doctor_id = ?
+        """, (doctor_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return [dict(row) for row in rows]
+    except Exception as e:
+        print(f"Error fetching authorized patients: {e}")
+        return []
+
+
+def get_all_doctors() -> List[Dict]:
+    """Get list of all doctors for access control UI."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, username FROM user_signup WHERE usertype = 'Doctor'
+        """)
+        rows = cursor.fetchall()
+        conn.close()
+        return [dict(row) for row in rows]
+    except Exception as e:
+        print(f"Error fetching doctors: {e}")
+        return []
+
+
+def calculate_encrypted_statistics(symptom_index: int) -> Dict:
+    """
+    Calculate encrypted group statistics (sum, average) for a symptom across all patients.
+    This simulates Homomorphic Addition on encrypted data.
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        # Fetch all plaintext symptoms (in real HE, these would be encrypted)
+        cursor.execute("SELECT patient_data FROM patientdata")
+        rows = cursor.fetchall()
+        conn.close()
+        
+        if not rows:
+            return {"count": 0, "sum": 0, "average": 0}
+        
+        values = []
+        for row in rows:
+            try:
+                # Parse plaintext symptoms from comma-separated string
+                parts = row['patient_data'].split(",")
+                if len(parts) > 1:
+                    symptoms_str = parts[-1]  # Last part is plaintext
+                    symptoms = [float(x) for x in symptoms_str.split()]
+                    if symptom_index < len(symptoms):
+                        values.append(symptoms[symptom_index])
+            except Exception:
+                continue
+        
+        if values:
+            return {
+                "count": len(values),
+                "sum": sum(values),
+                "average": sum(values) / len(values),
+                "min": min(values),
+                "max": max(values)
+            }
+        return {"count": 0, "sum": 0, "average": 0, "min": 0, "max": 0}
+    except Exception as e:
+        print(f"Error calculating statistics: {e}")
+        return {}
+
+
+def calculate_trend_difference(user_id: int, feature_index: int) -> Optional[float]:
+    """
+    Calculate encrypted difference (current - previous) for trend analysis.
+    Simulates Homomorphic Subtraction.
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        # Get last two records for this user
+        cursor.execute("""
+            SELECT patient_data FROM patientdata
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 2
+        """, (user_id,))
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        if len(rows) < 2:
+            return None
+        
+        values = []
+        for row in rows:
+            try:
+                parts = row['patient_data'].split(",")
+                if len(parts) > 1:
+                    symptoms_str = parts[-1]
+                    symptoms = [float(x) for x in symptoms_str.split()]
+                    if feature_index < len(symptoms):
+                        values.append(symptoms[feature_index])
+            except Exception:
+                continue
+        
+        if len(values) == 2:
+            return values[0] - values[1]  # Current - Previous
+        return None
+    except Exception as e:
+        print(f"Error calculating trend: {e}")
+        return None
+
+
+def calculate_granular_risk_score(symptoms: list) -> Tuple[float, str]:
+    """
+    Calculate granular risk score (0-100) using weighted sum of symptoms.
+    Simulates Homomorphic Addition and Multiplication on encrypted data.
+    """
+    # Weights for each symptom (adjusted based on medical importance)
+    weights = [0.5, 0.3, 1.0, 1.5, 1.2, 0.8, 0.9, 0.7, 0.6, 0.4, 0.5, 0.6, 0.8]
+    
+    try:
+        score = 0.0
+        for i, symptom in enumerate(symptoms):
+            if i < len(weights):
+                score += float(symptom) * weights[i]
+        
+        # Normalize to 0-100
+        normalized_score = min(100.0, (score / 50.0) * 100)
+        
+        # Determine risk level
+        if normalized_score < 30:
+            risk_level = "Low Risk"
+        elif normalized_score < 60:
+            risk_level = "Moderate Risk"
+        elif normalized_score < 80:
+            risk_level = "High Risk"
+        else:
+            risk_level = "Critical Risk"
+        
+        return round(normalized_score, 2), risk_level
+    except Exception as e:
+        print(f"Error calculating risk score: {e}")
+        return 0.0, "Unknown"
+
+
+# Initialize advanced tables on import
+create_trend_analysis_tables()
