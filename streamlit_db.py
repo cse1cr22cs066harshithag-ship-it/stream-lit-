@@ -186,6 +186,20 @@ def get_user_by_id(user_id: int) -> Optional[Dict]:
         return None
 
 
+def get_user_by_username(username: str) -> Optional[Dict]:
+    """Get user row by username."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, usertype FROM user_signup WHERE username = ?", (username,))
+        row = cursor.fetchone()
+        conn.close()
+        return dict(row) if row else None
+    except Exception as e:
+        print(f"Error fetching user by username: {e}")
+        return None
+
+
 # ==================== Advanced Features ====================
 
 def create_trend_analysis_tables():
@@ -219,6 +233,148 @@ def create_trend_analysis_tables():
     
     conn.commit()
     conn.close()
+
+
+def create_appointments_table():
+    """Create appointments table for scheduling."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS appointments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            provider_id INTEGER,
+            reason TEXT,
+            appt_date DATE,
+            appt_time TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES user_signup(id) ON DELETE CASCADE,
+            FOREIGN KEY (provider_id) REFERENCES user_signup(id) ON DELETE SET NULL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+def save_appointment(user_id: int, provider_id: Optional[int], reason: str, appt_date: str, appt_time: str) -> Tuple[bool, str]:
+    """Save an appointment booking."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO appointments (user_id, provider_id, reason, appt_date, appt_time)
+            VALUES (?, ?, ?, ?, ?)
+        """, (user_id, provider_id, reason, appt_date, appt_time))
+        conn.commit()
+        conn.close()
+        return True, "Appointment booked successfully"
+    except Exception as e:
+        return False, f"Error saving appointment: {e}"
+
+
+def get_user_appointments(user_id: int) -> List[Dict]:
+    """Retrieve appointments for a user."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT a.id, a.reason, a.appt_date, a.appt_time, u.username as provider
+            FROM appointments a
+            LEFT JOIN user_signup u ON a.provider_id = u.id
+            WHERE a.user_id = ?
+            ORDER BY a.appt_date DESC, a.appt_time DESC
+        """, (user_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return [dict(row) for row in rows]
+    except Exception as e:
+        print(f"Error fetching appointments: {e}")
+        return []
+
+
+def create_medications_table():
+    """Create medications table for medication manager."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS medications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            dosage TEXT,
+            schedule TEXT,
+            days_supply INTEGER DEFAULT 30,
+            last_taken TIMESTAMP,
+            refill_requested INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES user_signup(id) ON DELETE CASCADE
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+def save_medication(user_id: int, name: str, dosage: str, schedule: str, days_supply: int) -> Tuple[bool, str]:
+    """Add a medication for a user."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO medications (user_id, name, dosage, schedule, days_supply)
+            VALUES (?, ?, ?, ?, ?)
+        """, (user_id, name, dosage, schedule, days_supply))
+        conn.commit()
+        conn.close()
+        return True, "Medication added"
+    except Exception as e:
+        return False, f"Error saving medication: {e}"
+
+
+def get_user_medications(user_id: int) -> List[Dict]:
+    """Get medications for a user."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, name, dosage, schedule, days_supply, last_taken, refill_requested
+            FROM medications
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+        """, (user_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return [dict(row) for row in rows]
+    except Exception as e:
+        print(f"Error fetching medications: {e}")
+        return []
+
+
+def mark_medication_taken(med_id: int) -> bool:
+    """Update last_taken timestamp for a medication."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE medications SET last_taken = CURRENT_TIMESTAMP WHERE id = ?", (med_id,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error marking medication taken: {e}")
+        return False
+
+
+def request_refill(med_id: int) -> bool:
+    """Set refill_requested flag for medication."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE medications SET refill_requested = 1 WHERE id = ?", (med_id,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error requesting refill: {e}")
+        return False
 
 
 def save_risk_score(user_id: int, score: float, risk_level: str) -> bool:
@@ -459,3 +615,5 @@ def calculate_granular_risk_score(symptoms: list) -> Tuple[float, str]:
 
 # Initialize advanced tables on import
 create_trend_analysis_tables()
+create_appointments_table()
+create_medications_table()
